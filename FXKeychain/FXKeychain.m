@@ -137,6 +137,34 @@
     return self;
 }
 
+- (NSArray *)fetchAll
+{
+    NSMutableDictionary *query = [NSMutableDictionary dictionary];
+    if ([self.service length]) query[(__bridge NSString *)kSecAttrService] = self.service;
+    query[(__bridge NSString *)kSecClass] = (__bridge id)kSecClassGenericPassword;
+    query[(__bridge NSString *)kSecMatchLimit] = (__bridge id)kSecMatchLimitAll;
+    query[(__bridge NSString *)kSecReturnAttributes] = (__bridge id)kCFBooleanTrue;
+    
+    CFTypeRef data = NULL;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, (CFTypeRef *)&data);
+    if (status != errSecSuccess && status != errSecItemNotFound)
+    {
+        NSLog(@"FXKeychain failed to retrieve keys for service: %@, error: %ld", self.service, (long)status);
+    }
+
+    return CFBridgingRelease(data);
+}
+
+- (NSArray *)allKeys
+{
+    NSArray *dictionaries = [self fetchAll];
+    NSMutableArray *keys = [NSMutableArray array];
+    for (NSDictionary *dict in dictionaries) {
+        [keys addObject:dict[(__bridge NSString *)kSecAttrAccount]];
+    }
+    return keys;
+}
+
 - (NSData *)dataForKey:(id)key
 {
     //generate query
